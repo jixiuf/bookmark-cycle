@@ -2,7 +2,7 @@
 
 ;; Description: Description
 ;; Created: 2013-11-18 21:45
-;; Last Updated: 纪秀峰 2013-11-19 00:58:26 
+;; Last Updated: 纪秀峰 2013-11-20 03:35:04 
 ;; Author: 纪秀峰  jixiuf@gmail.com
 ;; Keywords: bookmark
 
@@ -91,13 +91,46 @@ call `bookmark-cycle-push-context'")
 (defun bookmark-cycle-next()
   "go to next bookmark cyclely"
   (interactive)
-  (bookmark-cycle-next-internal (bookmark-all-names)))
+  (let((names (bookmark-all-names)))
+    (case names
+      (nil (message "no bookmarks!!!"))
+      (otherwise
+       (if (or (null bookmark-cycle-cur-name)
+               (not (member bookmark-cycle-cur-name names)))
+           (bookmark-cycle--jump (car names))
+         (let ((first (car names)))
+           (while (not (string-equal bookmark-cycle-cur-name (car names)))
+             (setq names (cdr names)))
+           (if (>  (length names) 1)
+               (progn (bookmark-cycle--jump (nth 0 names))
+                      (setq bookmark-cycle-cur-name (nth 1 names)))
+             (bookmark-cycle--jump (nth 0 names))
+             (setq bookmark-cycle-cur-name first))))))))
 
 ;;;###autoload
 (defun bookmark-cycle-previous()
-    "go to previous bookmark cyclely"
+  "go to previous bookmark cyclely"
   (interactive)
-  (bookmark-cycle-next-internal (reverse (bookmark-all-names))))
+  (let((names (bookmark-all-names)))
+    (case names
+      (nil (message "no bookmarks!!!"))
+      (otherwise
+       (if (or (null bookmark-cycle-cur-name)
+               (not (member bookmark-cycle-cur-name names)))
+           (bookmark-cycle--jump (car names))
+         (let* ((first (car names))
+                (last (car (last names)))
+                (prev last))
+           (if (string-equal bookmark-cycle-cur-name first)
+               (progn
+                 (bookmark-cycle--jump last)
+                 (setq bookmark-cycle-cur-name last))
+             (while (not (string-equal bookmark-cycle-cur-name (car names)))
+               (setq prev (car names))
+               (setq names (cdr names)))
+             (when prev
+               (bookmark-cycle--jump prev)
+               (setq bookmark-cycle-cur-name prev)))))))))
 
 (defun bookmark-cycle-save-tmp-context()
   "for programmer save the current position to tmp marker,
@@ -120,21 +153,6 @@ it to bookmark list"
             (goto-char pos)
             (bookmark-cycle--push-curline)
             (setq bookmark-cycle-tmp-context-marker nil)))))))
-
-(defun bookmark-cycle-next-internal(bookmark-names)
-  (let((names bookmark-names))
-    (case names
-      (nil (message "no bookmarks!!!"))
-      (otherwise
-       (if (or (null bookmark-cycle-cur-name)
-               (not (member bookmark-cycle-cur-name names)))
-           (bookmark-cycle--jump (car names))
-         (let ((first (car names)))
-           (while (not (string-equal bookmark-cycle-cur-name (car names)))
-             (setq names (cdr names)))
-           (if (>  (length names) 1)
-               (bookmark-cycle--jump (nth 1 names))
-             (bookmark-cycle--jump first))))))))
 
 (defun bookmark-cycle--jump(name)
   (case (prefix-numeric-value current-prefix-arg)
